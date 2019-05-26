@@ -1,0 +1,9 @@
+QUESTIONS
+
+BERT
+1.) Green cuts? Red cuts?
+
+WIGGINS
+1.) I'm using assert to add rules to the database, is this alright?
+2.) How could I see if previous sentence has a professor that gets references by 'he' or 'she' in the next sentence?
+3.) My current representation is a triple [verb, subject, object], I was not able to do verb(subject, object).
