@@ -354,8 +354,30 @@ teaches(6, 3).
 teaches(6, 4).
 teaches(6, 5).
 
+/* Naive sorting algorithm */
+naive_sort(List,Sorted):-permutation(List,Sorted),is_sorted(Sorted).
 
+is_sorted([]).
+is_sorted([_]).
+is_sorted([[Prof1, Class1],[Prof2, Class2]|T]):-Class1=<Class2,is_sorted([[Prof2, Class2]|T]).
 
+/* Naive sorting algorithm 2 */
+naive_sort2([], ReverseSorted).
+naive_sort2([[Prof, Class]|B], Z):- Prof,
+
+/* Quicksort sorting algorithm */
+quick_sort([],[]).
+quick_sort([H|T],Sorted):-
+	pivoting(H,T,L1,L2),quick_sort(L1,Sorted1),quick_sort(L2,Sorted2),
+	append(Sorted1,[H|Sorted2]).
+
+pivoting([Prof1, Class1],[],[],[]).
+pivoting([Prof1, Class1],[[Prof2, Class2]|T],[[Prof2, Class2]|L],G):- Class1=<Class2,pivoting([Prof1, Class1],T,L,G).
+pivoting([Prof1, Class1],[[Prof2, Class2]|T],L,[[Prof2, Class2]|G]):- Class1>Class2,pivoting(Class1,T,L,G).
+
+%pivoting(H,[],[],[]).
+%pivoting(H,[X|T],[X|L],G):-X=<H,pivoting(H,T,L,G).
+%pivoting(H,[X|T],L,[X|G]):-X>H,pivoting(H,T,L,G).
 
 
 
@@ -367,34 +389,26 @@ teaches(6, 5).
    - courses: final list that will get returned. */
 constrain_courses([], [], [], Constraints).
 
-:- block course(-,-,-,-,-,-).
+:- block course(-,-,-,-,-).
 :- block course(-,-,-).
 
 /* If -for given values- there exists no course yet that is un-unifiable, you add the new course with given values. */
-constrain_courses([[Prof, Class]|Rest],[Day, Start, End|Variables], [course(Class, Prof, Room, Day, Start, End)|CourseList], Constraints):-
+constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Prof, Room, Day, Start)|CourseList], Constraints):-
 
   %all_different(Class),
   /* There are 5 working days a week (monday, tuesday, etc.)*/
-  Day in 1..8, %Should be 5
-  Start in 9..18,
-  End in 9..18,
-  %Prof in 1..10,
-  %Room in 100..102,
-  %Class in 1..5,
-  %Room in 100..102,
-  %Class in 1..5,
-  %Prof in 1..10,
-  %Room in 100..102,
-  /* Classes only last about an hour. */
-  End #= Start + 1,
+  Day in 1..5, %Should be 5
+  Start in 9..14,
+  %End in 9..14,
+  %End #= Start + 1,
 
-  %current_predicate(course/6).
   /* Search how much students given class has. */
-
-  teaches(Prof, Class),
+  teaches(Prof, Class, Constraints),
   has(Class, NoStudents),
   seats(Room, NoSeats),
   NoStudents #=< NoSeats,
+
+  %assert(hascourse(Class, Prof, Room, Day, Start, End)),
 
   /* Next iteration. */
   constrain_courses(Rest, Variables, CourseList, Constraints).
@@ -404,56 +418,16 @@ constrain_courses([[Prof, Class]|Rest],[Day, Start, End|Variables], [course(Clas
   link_courses([]).
   link_courses([_]).
 
-  link_courses([course(Class1, Prof1, Room1, Day1, Start1, End1),
-                course(Class2, Prof2, Room2, Day2, Start2, End2)|Courses]):-
+  link_courses([course(Class1, Prof1, Room1, Day1, Start1),
+                course(Class2, Prof2, Room2, Day2, Start2)|Courses]):-
 
-
-      /* Debuggers */
-      %nl, write("same room: "), write(Class1), write(", "), write(Class2), nl,
-      %teaches(Prof, Class),
-      %teaches(Prof1, Class1),
-      %teaches(Prof2, Class2),
-
-
-      %teaches(Prof1, Class1),
-      %teaches(Prof2, Class2),
-
-      %Class2 #>= Class1,
-      %Room2 #> Room1,
-
-      /* Necessary constraint: if not applied, a professor could teach the same class over a day. */
-      %Prof2 #>= Prof1,
-      %Room2 #>= Room1,
-      %Start2 #>= Start1,
-      %Day2 #>= Day1,
-     %Class2 #>= Class1,
-
-      %teaches(Prof1, Class1),
-      %teaches(Prof2, Class2),
-
-      %has(Class1, NoStudents1),
-      %seats(Room1, NoSeats1),
-      %NoStudents1 #=< NoSeats1,
-
-      %has(Class2, NoStudents2),
-      %seats(Room2, NoSeats2),
-      %NoStudents2 #=< NoSeats2,
-
-       (Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (End1 #=< Start2 - 2),
+       %Prof2 #>= Prof1,
+       (Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (Start1 #>= Start2 + 2),
        (Day1 #= Day2 #/\ Room1 #= Room2) #==> #\(Start1 #= Start2),
-
-       /* If a course starts at the same hour this could mean the following:
-        * 1.) It's a different day 2.) It's the same day but with another professor and room. */
-       %(Start1 #= Start2) #==> #\(Day1 #= Day2) #\/ (#\(Room1 #= Room2) #/\ #\(Prof1 #= Prof2)),
-       %(Class1 #= Class2) #==> #\(Prof1 #= Prof2),
-       %(Start1 #= Start2) #==> #\(Prof1 #= Prof2),
-       %(Prof1 #= Prof2) #==>(#\(Class1 #= Class2) #/\ #\(Start1 #= Start2)), % This is where it all goes souer.
-       %(Day1 #= Day2 #/\ Start1 #= Start2) #==> #\(Room1 #= Room2),
-       %(Room1 #= Ro)
 
       nl, write("current start1: "), write(Start1), nl,
       nl, write("current start2: "), write(Start2), nl,
-      link_courses([course(Class2, Prof2, Room2, Day2, Start2, End2)|Courses]).
+      link_courses([course(Class2, Prof2, Room2, Day2, Start2)|Courses]).
 
 
 
@@ -467,19 +441,21 @@ processConstraints(Constraints, [], P),
 /* Debugger */
 nl, write("final constraints: "), write(P), nl,
 
+
 /* Number of possible courses */
 make_class_list(Constraints, [], Classes),
 /* It's actually a list of prof-class paris*/
 make_class_prof_list(Constraints, [], Pairs),
-length(Classes, Len),
-nl, write("length: "), write(Len), nl,
+%quick_sort(Pairs, Sorted),
+
 %length(Timetable, Len),
-nl, write("Pairs: "), write(Pairs),
+%nl, write("Pairs sort: "), write(Sr),
 /* Make a list of professor-course pairs */
 %make_class_prof_list(P, [], Pairs),
-
+%naive_sort(Pairs, Sorted),
+%nl, write("sorted pairs: "), write(Sorted), nl
 /* The input should be ordered on professor. */
-constrain_courses([[1, 2], [1,1], [1,3], [1,4], [2,4], [2,3], [4,4], [4,1], [5,1], [5,4], [5,4] ], Variables, Timetable, P),
+constrain_courses(Pairs, Variables, Timetable, P),
 nl, write("Constrain timetable: "), write(Timetable), nl,
 link_courses(Timetable),
 labeling([ffc], Variables),
@@ -490,11 +466,11 @@ write("Time table: "), write(Timetable), nl
 
 /* Print a list of courses
  * Course(Class, Room, Day, Start, End)  */
- print_course(course(Class, Prof, Room, Day, Start, End)):-
+ print_course(course(Class, Prof, Room, Day, Start)):-
 
    /* Get the real values for given numbers. */
    real_class(Class, RC), real_prof(Prof, RP), real_day(Day, RD),
-
+   End is Start + 1,
    nl, write("Course has following information: "), nl,
    write("Class: "), write(RC), nl,
    write("Room: "), write(Room), nl,
@@ -548,28 +524,23 @@ is_simple_test_input([prof, smith, teaches, c3, fullstop,
                       classes, c1, c2, and, c3, are, in, the, same, room, fullstop,
                       classes, c1, and, c2, have, the, same, teacher, fullstop*/
                       ]).
-
-/* Call the test */
-%test :- is_test_input(X), sentences(Constraints, X, []),
-        /* Debugger */
-%        nl, write("first constraints: "), write(Constraints), nl,
-        /* Process them constraints */
-%        processConstraints(Constraints, [], ProcessedConstraints),
-        /* Debugger */
-%        nl, write("final constraints list lalala: "), write(ProcessedConstraints), nl
-        /* , teaches(smith, [c1], ProcessedConstraints) */
-%        .
+.
 test2 :- assertConstraints([[teaches,3,[2]], [inRoom,[1],1],[teaches,3,[2]]]).
 
 test :-
     timetable([
-               prof, smith, teaches, class, a1, c1, c4, fullstop,
-               %he, also, teaches, class, c4, fullstop, % If we remove this sentence, everything crashes.
-               %prof, jones, teaches, classes, c1, c2, and, c3, fullstop,
-               %prof, signer, teaches, classes, c1, c2, and, c3, fullstop,
-               %prof, hartmann, teaches, classes, c1, c2, and, c3, fullstop,
-               %he, also, teaches, class, c4, fullstop,
-               %she, also, teaches, class, c2, fullstop,
+               prof, jerry, teaches, class, a1, c1, c2, c3, c4, fullstop,
+               prof, smith, teaches, class, a1, c1, c2, c3, c4, fullstop,
+               prof, jones, teaches, class, a1, c1, c2, c3, c4, fullstop,
+               prof, ruiz, teaches, class, a1, c1, c2, c3, c4, fullstop,
+               prof, demeuter, teaches, class, a1, c1, c2, c3, c4, fullstop,
+
+               prof, hartmann, teaches, class, a1, c1, c2, c3, c4, fullstop,
+               prof, york, teaches, class, a1, c1, c2, c3, c4, fullstop,
+               prof, deauxma, teaches, class, a1, c1, c2, c3, c4, fullstop,
+               prof, signer, teaches, class, a1, c1, c2, c3, c4, fullstop,
+               prof, frost, teaches, class, a1, c1, c2, c3, c4, fullstop,
+
                class, c1, is, in, room, 1, fullstop,
                classes, c1, and, c2, have, the, same, teacher, fullstop,
                %class, a1, has, 45, students, fullstop,
