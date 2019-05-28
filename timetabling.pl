@@ -63,17 +63,17 @@ noun([5|A]) --> [a1], noun(A).
   noun(1) --> [1], noun(A).
 
 /* Name of the professors
- * Code names: jerry = 1, smith = 2, jones = 3, ruiz = 4, demeuter = 5,
- * hartmann = 6, york = 7, deauxma = 8, signer = 9, frost = 10 */
+ * Code names: jerry = 1, smith = 2, jones = 3, lopez = 4, jager = 5,
+ * sevic = 6, chome = 7, acker = 8, stark = 9, frost = 10 */
 noun(1) --> [jerry], noun(A).
 noun(2) --> [smith], noun(A).
 noun(3) --> [jones], noun(A).
-noun(4) --> [ruiz], noun(A).
-noun(5) --> [demeuter], noun(A).
-noun(6) --> [hartmann], noun(A).
-noun(7) --> [york], noun(A).
-noun(8) --> [deauxma], noun(A).
-noun(9) --> [signer], noun(A).
+noun(4) --> [lopez], noun(A).
+noun(5) --> [jager], noun(A).
+noun(6) --> [sevic], noun(A).
+noun(7) --> [chome], noun(A).
+noun(8) --> [acker], noun(A).
+noun(9) --> [stark], noun(A).
 noun(10) --> [frost], noun(A).
 
 /* He and she will have to be processed further with the previously generated Constraints
@@ -114,12 +114,12 @@ fullstop --> [fullstop].
  real_prof(1, jerry).
  real_prof(2, smith).
  real_prof(3, jones).
- real_prof(4, ruiz).
- real_prof(5, demeuter).
- real_prof(6, hartmann).
- real_prof(7, york).
- real_prof(8, deauxma).
- real_prof(9, signer).
+ real_prof(4, lopez).
+ real_prof(5, jager).
+ real_prof(6, sevic).
+ real_prof(7, chome).
+ real_prof(8, acker).
+ real_prof(9, stark).
  real_prof(10, frost).
 
  real_class(1, c1).
@@ -245,10 +245,13 @@ sameDay(A, B, Constraints):- searchConstraints2(sameDay, Constraints, [SameDay, 
                              member(A, Days), member(B, Days).
 
 /* Is class A in room B? */
-inRoom(A, B, Constraints):- nl, write("yeet"),
+inRoom(A, B, Constraints):- nl, write("Class: "), write(A), nl,
+                            write("Room: "), write(B), nl,
                             searchConstraints2(inRoom, Constraints,[InRoom, Classes|Room]),
-                            nl, write("in room: "), write(Room), nl,
+                            %nl, write("in room: "), write(Room), nl,
                             member(A, Classes), isEqual(B, Room).
+
+inRoom(1, 102).
 
 
 
@@ -269,7 +272,6 @@ constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Pr
   Start in 9..14,
 
   /* Search how much students given class has. */
-  %teaches(Prof, Class, Constraints),
   has(Class, NoStudents),
   seats(Room, NoSeats),
   NoStudents #=< NoSeats,
@@ -286,31 +288,26 @@ constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Pr
 
   compare_all(course(Class1, Prof1, Room1, Day1, Start1),
                [course(Class2, Prof2, Room2, Day2, Start2)|Courses]):-
-                %Prof2 #>= Prof1,
+
+                /* Apply other class specific constraints */
+                %inRoom(Class,Room),
+
+                /* Compare courses */
                 (Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (Start1 #>= Start2 + 2),
                 (Day1 #= Day2 #/\ Room1 #= Room2) #==> #\(Start1 #= Start2),
                 (Day1 #= Day2 #/\ Room1 #= Room2) #==> #\(Start1 #= Start2),
                 (Room1 #= Room2 #/\ Start1 #= Start2) #==> #\(Day1 #= Day2),
                 (Class1 #= Class2) #==> #\(Prof1 #= Prof2),
-                nl, write("current start1: "), write(Start1), nl,
-                nl, write("current start2: "), write(Start2), nl,
-                %link_courses(Courses),
+
                 compare_all(course(Class1, Prof1, Room1, Day1, Start1), Courses).
 
-
-
+  /* Check the constraints for the relations between classes. */
   link_courses([course(Class1, Prof1, Room1, Day1, Start1),
                 course(Class2, Prof2, Room2, Day2, Start2)|Courses]):-
 
+      /* Compare the first course with all other courses. */
       compare_all(course(Class1, Prof1, Room1, Day1, Start1), [course(Class2, Prof2, Room2, Day2, Start2)|Courses]),
 
-      %Prof2 #>= Prof1,
-      %(Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (Start1 #>= Start2 + 2),
-      %(Day1 #= Day2 #/\ Room1 #= Room2) #==> #\(Start1 #= Start2),
-
-      %nl, write("current start1: "), write(Start1), nl,
-      %nl, write("current start2: "), write(Start2), nl,
-      %link_courses(Courses),
       link_courses([course(Class2, Prof2, Room2, Day2, Start2)|Courses]).
 
 
@@ -322,6 +319,9 @@ timetable(Data, Timetable):-
 
   /* Process the constraints (replace he and she by their real value) */
   processConstraints(Constraints, [], P),
+
+  /* Debugger */
+  nl, write("Processed constraints: "), write(P), nl,
 
   /* Number of possible courses */
   make_class_list(Constraints, [], Classes),
@@ -340,197 +340,95 @@ timetable(Data, Timetable):-
   labeling([ffc], Variables),
 
 /* What's the timetable now? */
-write("Time table: "), write(Timetable), nl
-.
-
-/* Print a list of courses
- * Course(Class, Room, Day, Start, End)  */
- print_course(course(Class, Prof, Room, Day, Start)):-
-
-   /* Get the real values for given numbers. */
-   real_class(Class, RC), real_prof(Prof, RP), real_day(Day, RD),
-   End is Start + 1,
-   nl, write("Course has following information: "), nl,
-   write("Class: "), write(RC), nl,
-   write("Room: "), write(Room), nl,
-   write("Professor: "), write(RP), nl,
-   write("Day: "), write(RD), nl,
-   write("Start: "), write(Start), nl,
-   write("End: "), write(End), nl.
-
-/* Base clause: when there are no more courses the print, you're good. */
-print_courses([]).
-print_courses([A|B]):- print_course(A), print_courses(B).
+write("Time table: "), write(Timetable), nl.
 
 /* TIME TABLE PRINTER */
-print_header:- nl, write("  _________________________________________________________"), nl,
-               print("|      | monday | tuesday | wednesday | thursday | friday |"), nl.
 
-
-/* Specify a day of which you want courses. */
-collectDayCourses([], Day, Courses, Courses).
-/* Remember an integer = 1 means monday */
-collectDayCourses([course(Class, Prof, Room, Day, Start)|Rest], Day, Courses, Z):-
-                      collectDayCourses(Rest, Day, [course(Class, Prof, Room, Day, Start)|Courses], Z).
-
-collectDayCourses([Course|Rest], Day, Courses, Z):-
-                      collectDayCourses(Rest, Day, Courses, Z).
-
-/* Specify an hour of which you want courses. */
-collectHourCourses([], Hour, Courses, Courses).
-/* Remember an integer = 1 means monday */
-collectHourCourses([course(Class, Prof, Room, Day, Hour)|Rest], Hour, Courses, Z):-
-                      collectHourCourses(Rest, Hour, [course(Class, Prof, Room, Day, Hour)|Courses], Z).
-
-collectHourCourses([Course|Rest], Hour, Courses, Z):-
-                      collectHourCourses(Rest, Hour, Courses, Z).
-
-/* Following predicate will print out a course */
-printCourse(course(Class, Prof, Room, Day, Hour)):-
-  write("Class: "), write(Class), write(", "), write("Prof: "),
-  write(Prof), write(", "), write("Room: "), write(Room).
-
-/* Following predicate will print out a line of courses for the whole week for an hour. */
-printCoursesWeekHourLine(Monday, Tuesday, Wednesday, Thursday, Friday):-
-  print_course(Monday), write(" | "), print_course(Tuesday), print_course(Wednesday),
-  write(" | "), print_course(Thursday), write(" | "), print_course(Friday), write(" | "), nl.
-
-printCoursesWeekHour([], [], [], [], []):- nl, write("we're done yeet."), nl.
-printCoursesWeekHour([Monday|MondayCourses], [Tuesday|TuesdayCourses], [Wednesday|WednesdayCourses], [Thursday|ThursdayCourses], [Friday|FridayCourses]):-
-printCoursesWeekHourLine(Monday, Tuesday, Wednesday, Thursday, Friday),
-printCoursesWeekHour(MondayCourses, TuesdayCourses, WednesdayCourses, ThursdayCourses, FridayCourses).
+/* Header for the timetable */
+print_header:- nl, write("  -------------------------------------------------------------------------------------------------------------------------------------------------------"), nl,
+               print("|       |           DAY 1           |           DAY 2            |           DAY 3            |           DAY 4            |           DAY 5            |"), nl.
 
 
 
+/* Find a course at a certain day, hour and room. */
+findCourse([], Day, Hour, Room, []).
+findCourse([course(Class, Prof, Room, Day, Hour)|Rest], Day, Hour, Room, course(Class, Prof, Room, Day, Hour)).
+findCourse([course(Class, Prof, Room, Day, Hour)|Rest], OtherDay, OtherHour, OtherRoom, Z):-
+findCourse(Rest, OtherDay, OtherHour, OtherRoom, Z).
+
+  /* Following predicate will print out a course */
+  printCourse([]):- write("                          "). % If the course is empty, print nothing.
+  printCourse(course(Class, Prof, Room, Day, Hour)):-
+    write("Cl: "), real_class(Class, RealC), write(RealC), write(", "), write("Pr: "),
+    real_prof(Prof, RealProf), write(RealProf), write(", "), write("Ro: "), write(Room).
+
+  /* Correct the placement of an hour in the timetable: if it's smaller than 10, it needs an additional white space. */
+  correct_hour(H):- H < 10, write(" "), write(H).
+  correct_hour(H):- write(H).
+
+  print_table_hour(Timetable, 15).
+  print_table_hour(Timetable, Hour):-
+    /*Print for a specific hour for every week day. */
+    write("  ----------------------------------------------------------------------------------------------------------------------------------------------------"), nl,
+
+    write(" |       |"), findCourse(Timetable, 1, Hour, 100, C1), printCourse(C1), write(" | "),
+    findCourse(Timetable, 2, Hour, 100, C2), printCourse(C2), write(" | "), findCourse(Timetable, 3, Hour, 100, C3),
+    printCourse(C3), write(" | "),
+    findCourse(Timetable, 4, Hour, 100, C4), printCourse(C4), write(" | "),
+    findCourse(Timetable, 5, Hour, 100, C5), printCourse(C5), write(" | "), nl,
+
+    write(" | "), correct_hour(Hour),write(":00 |"), findCourse(Timetable, 1, Hour, 101, C6), printCourse(C6), write(" | "),
+    findCourse(Timetable, 2, Hour, 101, C7), printCourse(C7), write(" | "), findCourse(Timetable, 3, Hour, 101, C8),
+    printCourse(C8), write(" | "), findCourse(Timetable, 4, Hour, 101, C9), printCourse(C9), write(" | "),
+    findCourse(Timetable, 5, Hour, 101, C10), printCourse(C10), write(" | "), nl,
+
+    write(" |       |"), findCourse(Timetable, 1, Hour, 102, C11), printCourse(C11), write(" | "),
+    findCourse(Timetable, 2, Hour, 102, C12), printCourse(C12), write(" | "), findCourse(Timetable, 3, Hour, 102, C13),
+    printCourse(C13), write(" | "),
+    findCourse(Timetable, 4, Hour, 102, C14), printCourse(C14), write(" | "),
+    findCourse(Timetable, 5, Hour, 102, C15), printCourse(C15), write(" | "), nl,
+
+    /* Print the next hour. */
+    NextHour is Hour + 1,
+    print_table_hour(Timetable, NextHour).
 
 
+      print_table(Timetable):-
+        print_header,
+        print_table_hour(Timetable, 9),
+        write("  ----------------------------------------------------------------------------------------------------------------------------------------------------"), nl,
 
-
-print_table(Timetable):-
-
-  /* Print the found courses. */
-  print_courses(Timetable),
-
-  /* Find the courses for each day. */
-  collectDayCourses(Timetable, 1, [], MondayCourses),
-  collectDayCourses(Timetable, 2, [], TuesdayCourses),
-  collectDayCourses(Timetable, 3, [], WednesdayCourses),
-  collectDayCourses(Timetable, 4, [], ThursdayCourses),
-  collectDayCourses(Timetable, 5, [], FridayCourses),
-
-  /* Select the courses for monday */
-  collectHourCourses(MondayCourses, 9, [], MHour9Course),
-  collectHourCourses(MondayCourses, 10, [], MHour10Course),
-  collectHourCourses(MondayCourses, 11, [], MHour11Course),
-  collectHourCourses(MondayCourses, 12, [], MHour12Course),
-  collectHourCourses(MondayCourses, 13, [], MHour13Course),
-  collectHourCourses(MondayCourses, 14, [], MHour14Course),
-
-  /* Select the courses for tuesday */
-  collectHourCourses(TuesdayCourses, 9, [], THour9Course),
-  collectHourCourses(TuesdayCourses, 10, [], THour10Course),
-  collectHourCourses(TuesdayCourses, 11, [], THour11Course),
-  collectHourCourses(TuesdayCourses, 12, [], THour12Course),
-  collectHourCourses(TuesdayCourses, 13, [], THour13Course),
-  collectHourCourses(TuesdayCourses, 14, [], THour14Course),
-
-  /* Select the courses for wednesday */
-  collectHourCourses(WednesdayCourses, 9, [], WHour9Course),
-  collectHourCourses(WednesdayCourses, 10, [], WHour10Course),
-  collectHourCourses(WednesdayCourses, 11, [], WHour11Course),
-  collectHourCourses(WednesdayCourses, 12, [], WHour12Course),
-  collectHourCourses(WednesdayCourses, 13, [], WHour13Course),
-  collectHourCourses(WednesdayCourses, 14, [], WHour14Course),
-
-  /* Select the courses for monday */
-  collectHourCourses(ThursdayCourses, 9, [], THHour9Course),
-  collectHourCourses(ThursdayCourses, 10, [], THHour10Course),
-  collectHourCourses(ThursdayCourses, 11, [], THHour11Course),
-  collectHourCourses(ThursdayCourses, 12, [], THHour12Course),
-  collectHourCourses(ThursdayCourses, 13, [], THHour13Course),
-  collectHourCourses(ThursdayCourses, 14, [], THHour14Course),
-
-  /* Select the courses for monday */
-  collectHourCourses(FridayCourses, 9, [], FHour9Course),
-  collectHourCourses(FridayCourses, 10, [], FHour10Course),
-  collectHourCourses(FridayCourses, 11, [], FHour11Course),
-  collectHourCourses(FridayCourses, 12, [], FHour12Course),
-  collectHourCourses(FridayCourses, 13, [], FHour13Course),
-  collectHourCourses(FridayCourses, 14, [], FHour14Course),
-
-  /*Print the courses */
-  print_header,
-    nl, write("Monday courses: "), write(MondayCourses), nl,
-  nl, write("Monday hour 9 courses: "), write(MHour9Course), nl,
-  %printCoursesWeekHour(MHour9Course, THour9Course, WHour9Course, THHour9COurse, FHour9Course),
-
-  nl, write("Course on monday 9 o'clock: "), write(MHour9Course), nl.
-
+        write("  LEGEND"), nl, write("  Cl: class, Pr: prof, Ro: room ").
 
 
 /* TESTS */
-/* First Test Input */
-is_test_input([prof, smith, teaches, class, c1, fullstop,
-               he, also, teaches, class, c4, fullstop,
-               prof, jones, teaches, classes, c1, c2, and, c3, fullstop,
-               she, also, teaches, class, c, fullstop,
-               class, c1, is, in, room, 1, fullstop,
-               classes, c1, c2, and, c3, are, in, the, same, room, fullstop,
-               classes, c1, and, c2, have, the, same, teacher, fullstop,
-               class, a1, has, 45, students, fullstop,
 
-               /* Specify the capacity of the rooms. */
-               room, 100, seats, 35, students, fullstop,
-               room, 101, seats, 60, students, fullstop,
-               room, 102, seats, 100, students, fullstop,
+test([
+           prof, jerry, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           prof, smith, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           %prof, jones, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           %prof, lopez, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           %prof, jager, teaches, class, a1, c1, c2, c3, c4, fullstop,
 
-               class, c1, is, before, class, c2, fullstop,
-               class, c4, is, after, class, c3, fullstop,
+           %prof, sevic, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           %prof, stark, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           %prof, chome, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           %prof, acker, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           %prof, frost, teaches, class, a1, c1, c2, c3, c4, fullstop,
 
-               /* 3 classes are on the same day. */
-               classes, c1, and, c4, are, on, the, same, day, fullstop
-               ]).
+           class, c1, is, in, room, 100, fullstop,
+           classes, c1, and, c2, have, the, same, teacher, fullstop,
+           %class, a1, has, 45, students, fullstop,
 
-/* Less complicated test input */
-is_simple_test_input([prof, smith, teaches, c3, fullstop,
-                      she, also, teaches, class, c2, fullstop,
-                      prof, jerry, teaches, c3, fullstop,
-                      he, also, teaches, class, c4, fullstop
-                      /*prof, jones, teaches, classes, c1, c2, and, c3, fullstop,
-                      room, 102, seats, 100, students, fullstop,
-                      class, c1, is, before, class, c2, fullstop,
-                      classes, c1, c3, and, c4, are, on, the, same, day, fullstop,
-                      classes, c1, c2, and, c3, are, in, the, same, room, fullstop,
-                      classes, c1, and, c2, have, the, same, teacher, fullstop*/
-                      ]).
+           /* Specify the capacity of the rooms. */
+           room, 100, seats, 35, students, fullstop,
+           room, 101, seats, 60, students, fullstop,
+           room, 102, seats, 100, students, fullstop,
 
-test :-
-    timetable([
-               prof, jerry, teaches, class, a1, c1, c2, c3, c4, fullstop,
-               prof, smith, teaches, class, a1, c1, c2, c3, c4, fullstop,
-               %prof, jones, teaches, class, a1, c1, c2, c3, c4, fullstop,
-               %prof, ruiz, teaches, class, a1, c1, c2, c3, c4, fullstop,
-               %prof, demeuter, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           /* Specifications for all classes. */
+           class, c1, is, before, class, c2, fullstop,
+           class, c4, is, after, class, c3, fullstop,
+           classes, c1, c3, and, c4, are, on, the, same, day, fullstop
+           ]).
 
-               %prof, hartmann, teaches, class, a1, c1, c2, c3, c4, fullstop,
-               %prof, york, teaches, class, a1, c1, c2, c3, c4, fullstop,
-               %prof, deauxma, teaches, class, a1, c1, c2, c3, c4, fullstop,
-               %prof, signer, teaches, class, a1, c1, c2, c3, c4, fullstop,
-               %prof, frost, teaches, class, a1, c1, c2, c3, c4, fullstop,
-
-               class, c1, is, in, room, 1, fullstop,
-               classes, c1, and, c2, have, the, same, teacher, fullstop,
-               %class, a1, has, 45, students, fullstop,
-
-               /* Specify the capacity of the rooms. */
-               room, 100, seats, 35, students, fullstop,
-               room, 101, seats, 60, students, fullstop,
-               room, 102, seats, 100, students, fullstop%,
-
-              % class, c1, is, before, class, c2, fullstop,
-               %class, c4, is, after, class, c3, fullstop,
-               %classes, c1, c3, and, c4, are, on, the, same, day, fullstop
-               ],
-               Timetable), print_table(Timetable).
-
-test2 :- print_header.
+solution :- test(Data), timetable(Data, Timetable), print_table(Timetable).
