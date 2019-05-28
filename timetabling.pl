@@ -245,27 +245,26 @@ sameDay(A, B, Constraints):- searchConstraints2(sameDay, Constraints, [SameDay, 
                              member(A, Days), member(B, Days).
 
 /* Is class A in room B? */
-inRoom(A, B, Constraints):- nl, write("Class: "), write(A), nl,
-                            write("Room: "), write(B), nl,
-                            searchConstraints2(inRoom, Constraints,[InRoom, Classes|Room]),
-                            %nl, write("in room: "), write(Room), nl,
+inRoom(A, B, Constraints):- searchConstraints2(inRoom, Constraints,[InRoom, Classes|Room]),
                             member(A, Classes), isEqual(B, Room).
 
-inRoom(1, 102).
-
-
+/* Is class A in room B? */
+sameTeacher(A, B, Constraints):-
+                             searchConstraints2(have, Constraints, [Have, Classes|sameTeacher]),
+                             nl, write("days: "), write(Days), nl,
+                             member(A, Days), member(B, Days).
 
 /* Put the constraints on the courses.
    Arguments:
    - coursenumbers: 10 teachers x 5 classes = 50 numbers
    - variables for each course: C(lass), R(oom), D(ay), S(tart), E(nd).
    - courses: final list that will get returned. */
-constrain_courses([], [], [], Constraints).
+constrain_courses([], [], []).
 
 :- block course(-,-,-,-,-).
 
 /* Constrain the values for the courses. */
-constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Prof, Room, Day, Start)|CourseList], Constraints):-
+constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Prof, Room, Day, Start)|CourseList]):-
 
   /* There are 5 working days a week (monday, tuesday, etc.)*/
   Day in 1..5,
@@ -277,20 +276,21 @@ constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Pr
   NoStudents #=< NoSeats,
 
   /* Next iteration. */
-  constrain_courses(Rest, Variables, CourseList, Constraints).
+  constrain_courses(Rest, Variables, CourseList).
 
 
   /* Link the courses together. */
-  link_courses([]).
-  link_courses([_]).
+  link_courses([], Constrtaints).
+  link_courses([_], Constraints).
 
-  compare_all(course(Class, Prof, Room, Day, Start), []).
+  compare_all(course(Class, Prof, Room, Day, Start), [], Constraints).
 
   compare_all(course(Class1, Prof1, Room1, Day1, Start1),
-               [course(Class2, Prof2, Room2, Day2, Start2)|Courses]):-
+               [course(Class2, Prof2, Room2, Day2, Start2)|Courses], Constraints):-
 
                 /* Apply other class specific constraints */
-                %inRoom(Class,Room),
+                inRoom(Class,Room, Constraints),
+                %(sameDay(Class1, Class, Constraints)) #==> (Day1 #= Day2),
 
                 /* Compare courses */
                 (Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (Start1 #>= Start2 + 2),
@@ -299,16 +299,16 @@ constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Pr
                 (Room1 #= Room2 #/\ Start1 #= Start2) #==> #\(Day1 #= Day2),
                 (Class1 #= Class2) #==> #\(Prof1 #= Prof2),
 
-                compare_all(course(Class1, Prof1, Room1, Day1, Start1), Courses).
+                compare_all(course(Class1, Prof1, Room1, Day1, Start1), Courses, Constraints).
 
   /* Check the constraints for the relations between classes. */
   link_courses([course(Class1, Prof1, Room1, Day1, Start1),
-                course(Class2, Prof2, Room2, Day2, Start2)|Courses]):-
+                course(Class2, Prof2, Room2, Day2, Start2)|Courses], Constraints):-
 
       /* Compare the first course with all other courses. */
-      compare_all(course(Class1, Prof1, Room1, Day1, Start1), [course(Class2, Prof2, Room2, Day2, Start2)|Courses]),
+      compare_all(course(Class1, Prof1, Room1, Day1, Start1), [course(Class2, Prof2, Room2, Day2, Start2)|Courses], Constraints),
 
-      link_courses([course(Class2, Prof2, Room2, Day2, Start2)|Courses]).
+      link_courses([course(Class2, Prof2, Room2, Day2, Start2)|Courses], Constraints).
 
 
 
@@ -333,9 +333,9 @@ timetable(Data, Timetable):-
    * In it, the predicate 'constrain_boxes' takes in a list of boxnumbers
    * to uniquely identify the boxes.
    * To uniquely identify a course: we need its professor and class (pairs). */
-  constrain_courses(Pairs, Variables, Timetable, P),
+  constrain_courses(Pairs, Variables, Timetable),
   nl, write("Constrain timetable: "), write(Timetable), nl,
-  link_courses(Timetable),
+  link_courses(Timetable, P),
 
   labeling([ffc], Variables),
 
