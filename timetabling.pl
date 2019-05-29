@@ -295,7 +295,6 @@ constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Pr
                 /* Compare courses */
                 (Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (Start1 #>= Start2 + 2),
                 (Day1 #= Day2 #/\ Room1 #= Room2) #==> #\(Start1 #= Start2),
-                (Day1 #= Day2 #/\ Room1 #= Room2) #==> #\(Start1 #= Start2),
                 (Room1 #= Room2 #/\ Start1 #= Start2) #==> #\(Day1 #= Day2),
                 (Class1 #= Class2) #==> #\(Prof1 #= Prof2),
 
@@ -406,15 +405,15 @@ findCourse(Rest, OtherDay, OtherHour, OtherRoom, Z).
 test([
            prof, jerry, teaches, class, a1, c1, c2, c3, c4, fullstop,
            prof, smith, teaches, class, a1, c1, c2, c3, c4, fullstop,
-           %prof, jones, teaches, class, a1, c1, c2, c3, c4, fullstop,
-           %prof, lopez, teaches, class, a1, c1, c2, c3, c4, fullstop,
-           %prof, jager, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           prof, jones, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           prof, lopez, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           prof, jager, teaches, class, a1, c1, c2, c3, c4, fullstop,
 
-           %prof, sevic, teaches, class, a1, c1, c2, c3, c4, fullstop,
-           %prof, stark, teaches, class, a1, c1, c2, c3, c4, fullstop,
-           %prof, chome, teaches, class, a1, c1, c2, c3, c4, fullstop,
-           %prof, acker, teaches, class, a1, c1, c2, c3, c4, fullstop,
-           %prof, frost, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           prof, sevic, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           prof, stark, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           prof, chome, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           prof, acker, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           prof, frost, teaches, class, a1, c1, c2, c3, c4, fullstop,
 
            class, c1, is, in, room, 100, fullstop,
            classes, c1, and, c2, have, the, same, teacher, fullstop,
