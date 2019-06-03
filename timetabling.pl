@@ -8,24 +8,22 @@
 /* Import following libraries for the code to work: */
 :- use_module(library(lists)).
 :- use_module(library(clpfd)).
-:- use_module(library(random)).
-
 
 /* For the arguments, we go from the assumption that 'verb_phrase' gives back */
-sentences([Constr1|Constr2]) --> sentence(Constr1), {print(Constr1)}, sentences(Constr2).
-sentences([]) --> sentence(Constr1), {print(Constr1)}sentences(Constr2).
+sentences([Constr1|Constr2]) --> sentence(Constr1), sentences(Constr2).
+sentences([]) --> sentence(_), sentences(_).
 
 /* It's also possible that you have no sentences left. */
 sentences([]) --> [].
 sentence([A,NP,B]) --> noun_phrase(NP), verb_phrase([A,B]), fullstop, {A\= is, A\= are}.
 
 /* If the verb is empty, the objects contain the time (before or after) for the subject. */
-sentence([B,NP,C]) --> noun_phrase(NP), verb_phrase([A,[B|C]]), fullstop.
+sentence([B,NP,C]) --> noun_phrase(NP), verb_phrase([_,[B|C]]), fullstop.
 
 
 /* Appending an empty list with a list equals the list that has at least some content. */
 noun_phrase([]) --> [].
-noun_phrase(C1) --> noun(C1), noun(C2).
+noun_phrase(C1) --> noun(C1), noun(_).
 noun_phrase(C1) --> noun(C1), [].
 
 
@@ -45,8 +43,8 @@ noun(A) --> [students], noun(A).
 noun(A) --> [room], noun(A).
 noun(A) --> [and], noun(A).
 noun(A) --> [also], noun(A).
-//noun(A) --> [the], noun(A).
-//noun(A) --> [same], noun(A).
+noun(A) --> [the], noun(A).
+noun(A) --> [same], noun(A).
 
 /* Possible classes for the school: you only have 5 classes.
  * We have to give them numerical values: c1 = 1, c2 = 2, c3 = 3, c4 = 4, a1 = 5 */
@@ -58,33 +56,36 @@ noun([5|A]) --> [a1], noun(A).
 
 /* Numbers that can be used as subjects or objects
  * Examples: room number, #students that a room can take, etc. */
- noun(100) --> [100], noun(A).
- noun(101) --> [101], noun(A).
- noun(102) --> [102], noun(A).
- noun(35) --> [35], noun(A).
- noun(60) --> [60], noun(A).
- noun(45) --> [45], noun(A).
-  noun(1) --> [1], noun(A).
+ noun(100) --> [100], noun(_).
+ noun(101) --> [101], noun(_).
+ noun(102) --> [102], noun(_).
+ noun(60) --> [60], noun(_).
+ noun(50) --> [50], noun(_).
+ noun(45) --> [45], noun(_).
+ noun(40) --> [40], noun(_).
+ noun(35) --> [35], noun(_).
+ noun(30) --> [30], noun(_).
+ noun(1) --> [1], noun(_).
 
 /* Name of the professors
  * Code names: jerry = 1, smith = 2, jones = 3, lopez = 4, jager = 5,
  * sevic = 6, chome = 7, acker = 8, stark = 9, frost = 10 */
-noun(1) --> [jerry], noun(A).
-noun(2) --> [smith], noun(A).
-noun(3) --> [jones], noun(A).
-noun(4) --> [lopez], noun(A).
-noun(5) --> [jager], noun(A).
-noun(6) --> [sevic], noun(A).
-noun(7) --> [chome], noun(A).
-noun(8) --> [acker], noun(A).
-noun(9) --> [stark], noun(A).
-noun(10) --> [frost], noun(A).
+noun(1) --> [jerry], noun(_).
+noun(2) --> [smith], noun(_).
+noun(3) --> [jones], noun(_).
+noun(4) --> [lopez], noun(_).
+noun(5) --> [jager], noun(_).
+noun(6) --> [sevic], noun(_).
+noun(7) --> [chome], noun(_).
+noun(8) --> [acker], noun(_).
+noun(9) --> [stark], noun(_).
+noun(10) --> [frost], noun(_).
 
 /* He and she will have to be processed further with the previously generated Constraints
  * as to know which person (e.g. professor) the sentence is talking about. */
- noun(he) --> [he], noun(A).
- noun(she) --> [she], noun(A).
- noun(sameTeacher) --> [the, same, teacher], noun(A).
+ noun(he) --> [he], noun(_).
+ noun(she) --> [she], noun(_).
+ noun(sameTeacher) --> [the, same, teacher], noun(_).
 
 /* Time nouns, they will be added to the sentence triple
  * because they represent the predicate's name. */
@@ -138,7 +139,7 @@ fullstop --> [fullstop].
  real_day(4, thursday).
  real_day(5, friday).
 
-newSentence(X, Y, Z):- write("new sentence"), nl.
+newSentence(_,_,_):- write("new sentence"), nl.
 
 /* Every class has an amount of students.
  * Remember: c1 = 1, c2 = 2, c3 = 3, c4 = 4 and a1 = 5
@@ -149,6 +150,13 @@ has(3, 100).
 has(4, 40).
 has(5, 50).
 
+/* Does a given class have a given number of students? */
+has(Class, NoStudents, Constraints):-
+  searchConstraints(Constraints, has, [], Pairs),
+  write("pairs: "), write(Pairs), nl,
+  searchPairs(Class, NoStudents, Pairs).
+has(_,_,_).
+
 seats(100, 35).
 seats(101, 60).
 seats(102, 100).
@@ -157,8 +165,9 @@ seats(102, 100).
 
 /* We need some basic list processing since we're using triples of a ver, subject and object.
  * 'findIndex' will find the C'th element of the given list [A|B]. */
- find([Element|List], Element).
- find([Element|List], OtherElement) :- find(List, OtherElement).
+ find([Element|_], Element).
+ find([_|List], OtherElement) :- find(List, OtherElement).
+ find(Element, Element).
 
  /* Get first, second and third element of a list. */
  first([E|_], E).
@@ -168,16 +177,8 @@ seats(102, 100).
 
  /* Following predicates process a list of constraints as to replace he and she with the professors. */
  isEqual(A, A).
- isEqual(A, [A|C]):- write("Is equal: "), write(A), nl.
+ isEqual(A, [A|_]):- write("Is equal: "), write(A), nl.
  isEqual(A, [B|C]):- write("is not equal: "), write(A), write(" and "), write(B), nl, isEqual(A, C).
-
-
-  /* Following predicate counts how much different courses can be tought in a week */
-  countCourses([], No, No).
-  countCourses([[teaches, Prof , [Class|OtherClass]|Empty]|Rest], Counter, Z):- length([Class|OtherClass], Len), write("found length: "), write(Len), nl,
-                                                                        NewLen is Len + Counter,countCourses(Rest, NewLen, Z).
-  countCourses([A|B], Counter, Z):- write("YEEET"), nl, countCourses(B, Counter, Z).
-
 
  processConstraints([], A, A):- nl, write("final processed constraint: "), write(A), nl.
  /* Watch the previous constraint if the subject is 'he' or 'she'. */
@@ -195,122 +196,89 @@ processConstraints([A|B], [C|D], Z):- first(A, Verb), second(A, Subj1), third(A,
 processConstraints([A|B], [C|D], Z):- processConstraints(B, [A,C|D], Z).
 processConstraints([A|B], [], Z):- processConstraints(B, [A], Z).
 
-/* Necessary predicates to go through the list of constraints. */
-searchConstraints(Verb, Subject, Object, []).
-searchConstraints(Verb, Subject, Object, [A|B]):- first(A, FoundVerb),  second(A, FoundSubj), third(A, FoundObj),
-                                                 isEqual(Verb, FoundVerb), isEqual(Subject, FoundSubj),
-                                                 isEqual(Object, FoundObj),% nl, write("FOUND: "), write(Subject), nl.
-searchConstraints(Verb, Subject, Object, [A|B]):- searchConstraints(Verb, Subject, Object, B).
-
-/* Improved version of searchConstraints: this one just gives back the constraint it has found. */
-searchConstraints2(Verb, [[Verb|Rest]|Constraints], [Verb|Rest]).
-
-/* Keep iterating untill you found the constraint we were looking for. */
-searchConstraints2(Verb, [[A|Rest]|Constraints], Z):- searchConstraints2(Verb, Constraints, Z).
-
-
 /* Following predicate make a list of classes-room pairs. */
 /* Improved version of searchConstraints: this one just gives back the constraint it has found. */
 searchInRooms([], Pairs, Pairs).
 searchInRooms([A|B], Pairs, Z):- first(A, FoundVerb), second(A, Classes), third(A, Room),
                                        isEqual(inRoom, FoundVerb), searchInRooms(B, [[Classes, Room]|Pairs], Z).
-searchInRooms([A|B], Pairs, Z):- searchInRooms(B, Pairs, Z).
+searchInRooms([_|B], Pairs, Z):- searchInRooms(B, Pairs, Z).
 
 /* Generic procedure that makes a list of pairs of the second and third elements
  * of triples in the list that match with given verb.*/
- searchConstraints3([], Verb, Pairs, Pairs).
- searchConstraints3([A|B], Verb, Pairs, Z):- first(A, FoundVerb), second(A, Second), third(A, Third),
+ searchConstraints([], _, Pairs, Pairs).
+ searchConstraints([A|B], Verb, Pairs, Z):- first(A, FoundVerb), second(A, Second), third(A, Third),
                                              %write("found: "), write([Second, Third])
-                                             isEqual(Verb, FoundVerb), searchConstraints3(B, Verb, [[Second, Third]|Pairs], Z).
-searchConstraints3([A|B], Verb, Pairs, Z):- searchConstraints3(B, Verb, Pairs, Z).
+                                             isEqual(Verb, FoundVerb), searchConstraints(B, Verb, [[Second, Third]|Pairs], Z).
+searchConstraints([_|B], Verb, Pairs, Z):- searchConstraints(B, Verb, Pairs, Z).
 
 /* Process the list of class pairs given a class */
-findRoom([], Class, []).
-findRoom([[Classes, Room]|OtherPairs], Class, Room):- find(Classes, Class).
-findRoom([[Classes, Room]|OtherPairs], Class, Room):- findRoom(OtherPairs, Class, Room).
+findRoom([], _, []).
+findRoom([[Classes, Room]|_], Class, Room):- find(Classes, Class).
+findRoom([[_, Room]|OtherPairs], Class, Room):- findRoom(OtherPairs, Class, Room).
 
 /* Make a list of professor-course pairs. */
-prof_class_pair(Prof, [], P, P).
+prof_class_pair(_, [], P, P).
 prof_class_pair(Prof, [A|B], Pairs, Z):- prof_class_pair(Prof, B, [[Prof, A]|Pairs], Z).
 
 make_class_prof_list([], List, List).
 make_class_prof_list([[teaches, Prof, Courses]|Rest], List, Z):- prof_class_pair(Prof, Courses, [], Pairs),
                                                                append(Pairs, List, Newlist), make_class_prof_list(Rest, Newlist, Z).
 
-make_class_prof_list([Something|Rest], List, Z):- make_class_prof_list(Rest, List, Z).
-
-
-/* The following predicates make a list where a class is added each time it gets tought by a professor */
-prof_classes(Prof, [], C, C).
-prof_classes(Prof, [Class|OtherClasses], Classes, Z):- prof_class_pair(Prof, OtherClasses, [Class|Classes], Z).
-
-make_class_list([], List, List).
-make_class_list([[teaches, Prof, Classes]|Rest], List, Z):- prof_class_pair(Prof, Classes, [], AllClasses),
-                                                               append(Classes, List, Newlist), make_class_prof_list(Rest, Newlist, Z).
-
-make_class_list([Something|Rest], List, Z):- make_class_prof_list(Rest, List, Z).
+make_class_prof_list([_|Rest], List, Z):- make_class_prof_list(Rest, List, Z).
 
 /* Second prototype for inRoom: will take an original room
  * and see if it can find a constraint that wants the given class to be in a specific room */
-inRoom(Constraints, Class, OriginalRoom, AnswerRoom):- searchConstraints3(Constraints, inRoom, [], Pairs),
+inRoom(Constraints, Class, _, AnswerRoom):- searchConstraints(Constraints, inRoom, [], Pairs),
                                                       %write("pairs: "), write(Pairs), nl,
                                                         findRoom(Pairs, Class, AnswerRoom),
                                                       %  write("answer room: "), write(AnswerRoom), nl,
                                                         \+ isEqual(AnswerRoom, []).
-inRoom(Constraints, Class, OriginalRoom, OriginalRoom).
+inRoom(_, _, OriginalRoom, OriginalRoom).
 
-/* Is class A in room B? */
-inRoom(A, B, Constraints):- searchConstraints2(inRoom, Constraints,[InRoom, Classes|Room]),
-                            member(A, Classes), isEqual(B, Room).
 
 /* See if a given class is before another class. */
 
 /* This predicate searches a list of pairs with every element within a list of classes
  * for the two given classes. */
-searchPairs(Class1, Class2, [[A, B]|OtherPairs]):- %write("found pairs: "), write(A), write(" and "), write(B),
+searchPairs(Class1, Class2, [[A, B]|_]):- %write("found pairs: "), write(A), write(" and "), write(B),
                                                    find(A, Class1), find(B, Class2).
 %searchPairs(Class1, Class2, [[A, B]|OtherPairs]):- find(A, Class2), find(B, Class1).
-searchPairs(Class1, Class2, [[A, B]|OtherPairs]):- searchPairs(Class1, Class2, OtherPairs).
+searchPairs(Class1, Class2, [[_, _]|OtherPairs]):- searchPairs(Class1, Class2, OtherPairs).
 
 /* For the same day predicate, the third element of the triple is an empty list.
  * This is why we must search the two classes in the second element. */
-searchDay(Class1, Class2, [[A, B]|OtherPairs]):- find(A, Class1), find(A, Class2).
+searchDay(Class1, Class2, [[A, _]|_]):- find(A, Class1), find(A, Class2).
 
-searchDay(Class1, Class2, [[A, B]|OtherPairs]):- searchDay(Class1, Class2, OtherPairs).
+searchDay(Class1, Class2, [[_, _]|OtherPairs]):- searchDay(Class1, Class2, OtherPairs).
 
 
-before(course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2), Constraints):-
+before(course(Class1, _, _, _, Start1), course(Class2, _, _, _, Start2), Constraints):-
 
-  searchConstraints3(Constraints, before, [], Pairs),
-
+  searchConstraints(Constraints, before, [], Pairs),
   searchPairs(Class1, Class2, Pairs),
 
-   Prof1 = Prof2,
-   Day1 = Day2,
    Start1 #< Start2.
 
-before(course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2), Constraints).
+before(course(_, _, _, _, _), course(_, _, _, _, _), _).
 
 /* Constraint that some classes need to take place after some other classes. */
-after(course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2), Constraints):-
-  searchConstraints3(Constraints, after, [], Pairs),
+after(course(Class1, _, _, _, Start1), course(Class2, _, _, _, Start2), Constraints):-
+  searchConstraints(Constraints, after, [], Pairs),
 
-  %Debugger
-  %write("found constraints: "), write(Pairs), nl,
   searchPairs(Class1, Class2, Pairs),
   Start1 #> Start2.
 
-after(course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2), Constraints).
+after(course(_, _, _, _, _), course(_, _, _, _, _), _).
 
 
-:- block course(-,-,-,-,-).
+%:- block course(-,-,-,-,-).
 
 /* Put the constraints on the courses.
    Arguments:
    - coursenumbers: 10 teachers x 5 classes = 50 numbers
    - variables for each course: C(lass), R(oom), D(ay), S(tart), E(nd).
    - courses: final list that will get returned. */
-constrain_courses([], [], [], Constraints).
+constrain_courses([], [], [], _).
 
 
 /* Constrain the values for the courses. */
@@ -321,7 +289,7 @@ constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Pr
   Start in 9..14,
 
   /* Search how much students given class has. */
-  has(Class, NoStudents),
+  has(Class, NoStudents, Constraints),
   seats(Room, NoSeats),
   inRoom(Constraints, Class,Room, AnswerRoom),
   NoStudents #=< NoSeats,
@@ -330,10 +298,16 @@ constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Class, Pr
   constrain_courses(Rest, Variables, CourseList, Constraints).
 
 
-compare_all(course(Class, Prof, Room, Day, Start), [], Constraints).
+compare_all(course(_, _, _, _, _), [], _).
 
 compare_all(course(Class1, Prof1, Room1, Day1, Start1),
              [course(Class2, Prof2, Room2, Day2, Start2)|Courses], Constraints):-
+
+                /* Time constraints */
+                sameDay(course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2), Constraints),
+                before(course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2), Constraints),
+                after(course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2), Constraints),
+
 
                 /* Compare courses */
                 (Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (Start1 #>= Start2 + 2),
@@ -344,57 +318,19 @@ compare_all(course(Class1, Prof1, Room1, Day1, Start1),
 
                 compare_all(course(Class1, Prof1, Room1, Day1, Start1), Courses, Constraints).
 
-  sameDayConstraints([], Constraints).
-  sameDayConstraints([_], Constraints).
 
-  sameDayConstraints([course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2)|Courses], Constraints):-
-    searchConstraints3(Constraints, sameDay, [], Pairs),
+  /* For same day to work, there should be not too much classes for a day. */
+  sameDay(course(Class1, _, _, Day1, _), course(Class2, _, _, Day2, _), Constraints):-
+    searchConstraints(Constraints, sameDay, [], Pairs),
     searchDay(Class1, Class2, Pairs),
-    write("match"), nl,
-    Class1 \= Class2,
-    Prof1 = Prof2,
-    Day1 #= Day2,
+    Day1 #= Day2.
 
-    sameDayConstraints([course(Class2, Prof2, Room2, Day2, Start2)|Courses], Constraints).
-
-  sameDayConstraints([course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2)|Courses], Constraints):-
-
-    sameDayConstraints([course(Class2, Prof2, Room2, Day2, Start2)|Courses], Constraints).
-
-  /* This predicate takes in a list of courses and 2 classes & professors and will try to find its courses. */
-  compare_courses(course(Class1, Prof1, Room1, Day1, Start1), Class2, course(Class3, Prof3, Room3, Day3, Start3)):-
-
-    Class1 = Class3,
-    Prof1 = Prof3,
-    Day1 #= Day3.
-
-  compare_courses(course(Class1, Prof1, Room1, Day1, Start1), Class2, course(Class3, Prof3, Room3, Day3, Start3)):-
-    write("did not match course 1: "), write(course(Class1, Prof1, Room1, Day1, Start1)), nl,
-    write("did not match course 2: "), write(course(Class3, Prof3, Room3, Day3, Start3)), nl.
-
-  sameday_courses(course(Class1, Prof1, Room1, Day1, Start1), Class2, []):- write("end of the line carl"), nl.
-
-  sameday_courses(Course1, Class2, [Course2|Courses]):-
-    %write("current course1: "), write(Course1), nl,
-    %write("found Course2 : "), write(Course2), nl,
-    compare_courses(Course1, Class2, Course2),
-    sameday_courses(Course1, Class2, Courses).
-
-
-  apply_same_day([course(Class1, Prof1, Room1, Day1, Start1)|Courses], Constraints):-
-    searchConstraints3(Constraints, sameDay, [], Pairs),
-    searchDay(Class1, Class2, Pairs),
-        write("yeet class 1: "), write(Class1), nl,
-        write("yeet class 2: "), write(Class2), nl,
-    sameday_courses(course(Class1, Prof1, Room1, Day1, Start1), Class2, Courses).
-
-    %apply_same_day([course(Class1, Prof1, Room1, Day1, Start1)|Courses], Constraints):- write("wtf"), nl.
-
+  sameDay(course(_, _, _, _, _), course(_, _, _, _, _), _).
 
 
   /* Link the courses together. */
-  link_courses([], Constraints).
-  link_courses([_], Constraints).
+  link_courses([], _).
+  link_courses([_], _).
 
   /* Check the constraints for the relations between classes. */
   link_courses([course(Class1, Prof1, Room1, Day1, Start1),
@@ -417,9 +353,6 @@ timetable(Data, Timetable):-
   /* Debugger */
   nl, write("Processed constraints: "), write(P), nl,
 
-  /* Number of possible courses */
-  make_class_list(Constraints, [], Classes),
-
   /* It's actually a list of prof-class paris*/
   make_class_prof_list(Constraints, [], Pairs),
 
@@ -427,13 +360,8 @@ timetable(Data, Timetable):-
    * In it, the predicate 'constrain_boxes' takes in a list of boxnumbers
    * to uniquely identify the boxes.
    * To uniquely identify a course: we need its professor and class (pairs). */
-  constrain_courses(Pairs, Variables, Timetable, Constraints),
-
-  nl, write("Constrain timetable: "), write(Timetable), nl,
-
+  constrain_courses(Pairs, Variables, Timetable, P),
   link_courses(Timetable, P),
-
-
   labeling([ffc], Variables),
 
 /* What's the timetable now? */
@@ -448,14 +376,14 @@ print_header:- nl, write("  ----------------------------------------------------
 
 
 /* Find a course at a certain day, hour and room. */
-findCourse([], Day, Hour, Room, []).
-findCourse([course(Class, Prof, Room, Day, Hour)|Rest], Day, Hour, Room, course(Class, Prof, Room, Day, Hour)).
-findCourse([course(Class, Prof, Room, Day, Hour)|Rest], OtherDay, OtherHour, OtherRoom, Z):-
+findCourse([], _, _, _, []).
+findCourse([course(Class, Prof, Room, Day, Hour)|_], Day, Hour, Room, course(Class, Prof, Room, Day, Hour)).
+findCourse([course(_, _, _, _, _)|Rest], OtherDay, OtherHour, OtherRoom, Z):-
 findCourse(Rest, OtherDay, OtherHour, OtherRoom, Z).
 
   /* Following predicate will print out a course */
   printCourse([]):- write("                          "). % If the course is empty, print nothing.
-  printCourse(course(Class, Prof, Room, Day, Hour)):-
+  printCourse(course(Class, Prof, Room, _, _)):-
     write("Cl: "), real_class(Class, RealC), write(RealC), write(", "), write("Pr: "),
     real_prof(Prof, RealProf), write(RealProf), write(", "), write("Ro: "), write(Room).
 
@@ -463,7 +391,7 @@ findCourse(Rest, OtherDay, OtherHour, OtherRoom, Z).
   correct_hour(H):- H < 10, write(" "), write(H).
   correct_hour(H):- write(H).
 
-  print_table_hour(Timetable, 15).
+  print_table_hour(_, 15).
   print_table_hour(Timetable, Hour):-
     /*Print for a specific hour for every week day. */
     write("  ----------------------------------------------------------------------------------------------------------------------------------------------------"), nl,
@@ -518,10 +446,18 @@ test([
            room, 101, seats, 60, students, fullstop,
            room, 102, seats, 100, students, fullstop,
 
+           /* Number of students per class. */
+           class, c1, has, 30, students, fullstop,
+           class, c2, has, 35, students, fullstop,
+           class, c3, has, 100, students, fullstop,
+           class, c4, has, 40, students, fullstop,
+           class, a1, has, 50, students, fullstop
+
+
            /* Specifications for all classes. */
-           class, c4, is, before, class, c1, fullstop,
-           class, c4, is, after, class, c3, fullstop,
-           classes, c1, and, c4, are, on, the, same, day, fullstop
+           %class, c4, is, before, class, c1, fullstop
+           %class, c4, is, after, class, c3, fullstop
+           %classes, c1, and, c4, are, on, the, same, day, fullstop
            ]).
 
-solution :- test(Data), timetable(Data, Timetable), print_table(Timetable).
+solution :- test(Data), sentences(_, Data, []), timetable(Data, Timetable), print_table(Timetable).
