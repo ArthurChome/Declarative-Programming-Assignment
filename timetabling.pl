@@ -202,28 +202,28 @@ seats(102, 100).
  find_a_class(Classes, [A|OtherClasses], Cnt, Z):- find_a_class(Classes, OtherClasses, Cnt, Z).
 
  /* If you found a day*/
- count_courses_same_day([], Classes, Count, Count):- write("Final count_courses_same_day count: "), write(Count), nl.
- count_courses_same_day([[teaches, Prof, ProfClasses]|OtherConstraints], Classes, Count, Z):-
-   find_a_class(ProfClasses, Classes, 0, Total),
-   NewCount is Count + Total,
-   count_courses_same_day(OtherConstraints, Classes, NewCount, Z).
+ %count_courses_same_day([], Classes, Count, Count):- write("Final count_courses_same_day count: "), write(Count), nl.
+ %count_courses_same_day([[teaches, Prof, ProfClasses]|OtherConstraints], Classes, Count, Z):-
+%   find_a_class(ProfClasses, Classes, 0, Total),
+%   NewCount is Count + Total,
+%   count_courses_same_day(OtherConstraints, Classes, NewCount, Z).
 
 
-count_courses_same_day([Constraint|OtherConstraints], Classes, NewCount, Z):- count_courses_same_day(OtherConstraints, Classes, NewCount, Z).
+%count_courses_same_day([Constraint|OtherConstraints], Classes, NewCount, Z):- count_courses_same_day(OtherConstraints, Classes, NewCount, Z).
 
  /* Upper bound is 10 courses a day for 3 rooms and days of 5 hours. */
- same_day_possible([], Constraints):- write("same day possible"), nl.
+% same_day_possible([], Constraints):- write("same day possible"), nl.
 
- same_day_possible([[sameDay, Classes, Nothing]|Rest], Constraints):-
-   count_courses_same_day(Constraints, Classes, 0, Count),
-   Count <= 8,
-   same_day_possible(Rest, Constraints).
+% same_day_possible([[sameDay, Classes, Nothing]|Rest], Constraints):-
+%   count_courses_same_day(Constraints, Classes, 0, Count),
+%   Count <= 8,
+%   same_day_possible(Rest, Constraints).
 
-   same_day_possible([[sameDay, Classes, Nothing]|Rest], Constraints):-
-     count_courses_same_day(Constraints, Classes, 0, Count),
-     Count > 8, halt.
+%   same_day_possible([[sameDay, Classes, Nothing]|Rest], Constraints):-
+%     count_courses_same_day(Constraints, Classes, 0, Count),
+%     Count > 8, halt.
 
- same_day_possible([[A|Rest], Constraints):- write("continue"), nl, same_day_possible(Rest, Constraints).
+ %same_day_possible([[A|Rest], Constraints):- write("continue"), nl, same_day_possible(Rest, Constraints).
 
 
  processConstraints([], A, A):- nl, write("final processed constraint: "), write(A), nl.
@@ -302,39 +302,43 @@ make_class_prof_list([_|Rest], List, Z):- make_class_prof_list(Rest, List, Z).
 
 /* Second prototype for inRoom: will take an original room
  * and see if it can find a constraint that wants the given class to be in a specific room */
-inRoom(Constraints, Class, _, AnswerRoom):- searchConstraints(Constraints, inRoom, [], Pairs),
-                                                      %write("pairs: "), write(Pairs), nl,
+inRoom(Constraints, Class, OriginalRoom, AnswerRoom):- searchConstraints(Constraints, inRoom, [], Pairs),
+                                                      write("inroom: "), write(Pairs), nl,
                                                         findRoom(Pairs, Class, AnswerRoom),
-                                                      %  write("answer room: "), write(AnswerRoom), nl,
-                                                        \+ isEqual(AnswerRoom, []).
-inRoom(_, _, OriginalRoom, OriginalRoom).
+                                                          \+ isEqual(AnswerRoom, []).
+inRoom(_, _, Room, Room).
 
 
-before(course(Class1, _, _, _, Start1), course(Class2, _, _, _, Start2), Constraints):-
-
+before(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints):-
   searchConstraints(Constraints, before, [], Pairs),
-  searchPairs(Class1, Class2, Pairs),
 
+  write("before pairs: "), write(Pairs), nl,
+
+  searchPairs(Class1, Class2, Pairs),
    Start1 #< Start2.
 
 before(course(_, _, _, _, _), course(_, _, _, _, _), _).
 
 /* Constraint that some classes need to take place after some other classes. */
-after(course(Class1, _, _, _, Start1), course(Class2, _, _, _, Start2), Constraints):-
+after(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints):-
   searchConstraints(Constraints, after, [], Pairs),
+
+  write("after pairs: "), write(Pairs), nl,
 
   searchPairs(Class1, Class2, Pairs),
   Start1 #> Start2.
 
-after(course(_, _, _, _, _), course(_, _, _, _, _), _).
+after(course(_, _, _, _, _), course(_, _, _, _, _), _):.
 
-teaches(Prof, Class, Constraints):-
-  searchConstraints(Constraints, teaches, [], Pairs),
+/* For same day to work, there should be not too much classes for a day. */
+sameDay(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints):-
+  searchSameDay(Constraints, sameDay, [], Pairs),
+  searchDay(Class1, Class2, Pairs), !,
+  Day1 #= Day2.
 
-  searchPairs(Prof, Class, Pairs).
+sameDay(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints).
 
 
-%:- block course(-,-,-,-,-).
 
 /* Put the constraints on the courses.
    Arguments:
@@ -343,21 +347,20 @@ teaches(Prof, Class, Constraints):-
    - courses: final list that will get returned. */
 constrain_courses([], [], [], Constraints).
 
-
 /* Constrain the values for the courses. */
-constrain_courses([[Prof, Class]|Rest],[Day, Start, Room|Variables], [course(Prof, Class, Room, Day, Start)|CourseList], Constraints):-
+constrain_courses([[Prof, Class]|Rest],[Day, Start |Variables], [course(Prof, Class, AnswerRoom, Day, Start)|CourseList], Constraints):-
 
   /* There are 5 working days a week (monday, tuesday, etc.)*/
   Day in 1..5,
   Start in 9..14,
-  Room in 100..102,
+  %Room in 100..102,
   %teaches(Prof, Class, Constraints),
   %Start #= 11,
+  inRoom(Constraints, Class, Room, AnswerRoom),
 
   /* Search how much students given class has. */
   has(Class, NoStudents, Constraints),
   seats(Room, NoSeats),
-  %inRoom(Constraints, Class,Room, AnswerRoom),
   NoStudents #=< NoSeats,
 
   /* Next iteration. */
@@ -370,47 +373,21 @@ compare_all(_, [], Constraints).
 compare_all(course(Prof1, Class1, Room1, Day1, Start1),
              [course(Prof2, Class2, Room2, Day2, Start2)|Courses], Constraints):-
 
-                /* Time constraints */
-                sameDay(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints),
-                %before(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints),
-                %after(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints),
+
 
                 /* Compare courses */
-                (Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (Start1 #>= Start2 + 2),
+                (Prof1 #= Prof2 #/\ Day1 #= Day2) #==> abs(Start1 - Start2) #>= 2,
                 (Day1 #= Day2 #/\ Room1 #= Room2) #==> #\(Start1 #= Start2),
                 (Room1 #= Room2 #/\ Start1 #= Start2) #==> #\(Day1 #= Day2),
                 (Class1 #= Class2) #==> #\(Prof1 #= Prof2),
-                %(Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (Start1 #>= Start2 + 2),
-                %(Day1 #= Day2 #/\ Room1 #= Room2) #==> #\(Start1 #= Start2),
-                %(Room1 #= Room2 #/\ Start1 #= Start2) #==> #\(Day1 #= Day2),
-                %(Day1 #= Day2 #/\ Start1 #= Start2) #==> #\(Room1 #= Room2),
-                %(Class1 #= Class2) #==> #\(Prof1 #= Prof2),
-                %Start1 \#= Start2,
-                %(Start1 #= Start2) #==> #\(Day1 #= Day2),
-                %(Day1 #= Day2) #==> #\(Start1 #= Start2),
-                write("compare: "), !,
-                %(Class1 #= Class2) #==> #\(Prof1 #= Prof2),
+
+                write("compare: "),
+
+                sameDay(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints), !,
+                before(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints), !,
+                after(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints), !,
 
                 compare_all(course(Prof1, Class1, Room1, Day1, Start1), Courses, Constraints).
-
-
-  /* For same day to work, there should be not too much classes for a day. */
-  sameDay(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints):-
-
-    %Start1 #=< 14,
-    %Start2 #=< 14,
-    searchSameDay(Constraints, sameDay, [], Pairs),
-    searchDay(Class1, Class2, Pairs), !,
-    %write("constraints: "), write(Constraints), nl,
-    %write("pairs of same day: "), write(Pairs), nl,
-    %sameDayClasses(Class1, Class2, Pairs, Classes),
-    %count_courses_same_day(Constraints, Classes, 0, Count),
-    %write("number of courses in a same day: "), write(Count), nl,
-    %Count <= 8,
-
-    Day1 #= Day2.
-
-  sameDay(course(Prof1, Class1, Room1, Day1, Start1), course(Prof2, Class2, Room2, Day2, Start2), Constraints).
 
   /* Link the courses together. */
   link_courses([], Constraints).
@@ -421,7 +398,7 @@ compare_all(course(Prof1, Class1, Room1, Day1, Start1),
                 course(Prof2, Class2, Room2, Day2, Start2)|Courses], Constraints):-
 
       /* Compare the first course with all other courses. */
-      compare_all(course(Prof1, Class1, Room1, Day1, Start1), [course(Prof2, Class2, Room2, Day2, Start2)|Courses], Constraints),
+      compare_all(course(Prof1, Class1, Room1, Day1, Start1), [course(Prof2, Class2, Room2, Day2, Start2)|Courses], Constraints), !,
 
       link_courses([course(Prof2, Class2, Room2, Day2, Start2)|Courses], Constraints).
 
@@ -430,37 +407,23 @@ compare_all(course(Prof1, Class1, Room1, Day1, Start1),
 timetable(Data, Timetable):-
 
   sentences(Constraints, Data, []),
-  write("constraints: "), write(Constraints), nl,
-  %processConstraints(Constraints, [], P),
-  make_class_prof_list(Constraints, [], Pairs),
-  write("pairs: "), write(Pairs), nl,
-
   %sentences(Constraints, Data, []),
   /* Process the constraints (replace he and she by their real value) */
-  %processConstraints(Constraints, [], P),
+  processConstraints(Constraints, [], P),
 
-  /* Check if given constraints are possible. */
-  %same_day_possible(Constraints, Constraints),
-
-
-  /* Debugger */
-  %nl, write("Processed constraints: "), write(P), nl,
-
-  /* It's actually a list of prof-class paris*/
-  %make_class_prof_list(Constraints, [], Pairs),
+  write("constraints: "), write(Constraints), nl,
+  make_class_prof_list(P, [], Pairs),
+  write("pairs: "), write(Pairs), nl,
 
   length(Pairs, PairsLen),
   length(Timetable, PairsLen), !,
-  %PairsLen = TimetableLen,
-
-
 
   /* The idea comes from the resource allocation from Chapter 15.
    * In it, the predicate 'constrain_boxes' takes in a list of boxnumbers
    * to uniquely identify the boxes.
    * To uniquely identify a course: we need its professor and class (pairs). */
-  constrain_courses(Pairs, Variables, Timetable, Constraints),
-  link_courses(Timetable, Constraints), !,
+  constrain_courses(Pairs, Variables, Timetable, P),
+  link_courses(Timetable, P), !,
   labeling([ffc], Variables).
 
 %timetable(Data, Timetable):- write("could not find. ").
@@ -530,7 +493,7 @@ test([
            prof, jerry, teaches, class, a1, c1, c2, c3, c4, fullstop,
            prof, smith, teaches, class, a1, c1, c2, c3, c4, fullstop,
            prof, jones, teaches, class, a1, c1, c2, c3, c4, fullstop,
-           prof, lopez, teaches, class, a1, c1, c2, c3, c4, fullstop,
+           %prof, lopez, teaches, class, a1, c1, c2, c3, c4, fullstop,
            %prof, jager, teaches, class, a1, c1, c2, c3, c4, fullstop,
 
            %prof, sevic, teaches, class, a1, c1, c2, c3, c4, fullstop,
@@ -551,11 +514,14 @@ test([
            class, c4, has, 40, students, fullstop,
            class, a1, has, 50, students, fullstop,
 
+           /* Specify room locations for specific classes. */
+           class, c1, in, room, 100,
 
            /* Specifications for all classes. */
-           %class, c4, is, before, class, c1, fullstop
-           %class, c4, is, after, class, c3, fullstop
-           classes, c1, and, c4, are, on, the, same, day, fullstop
+           %
+           %class, c4, is, before, class, c1, fullstop,
+           class, c2, is, after, class, c3, fullstop
+           %classes, c1, and, c4, are, on, the, same, day, fullstop
            ]).
 
 solution :- test(Data), timetable(Data, Timetable), write("timetable: "), write(Timetable), print_table(Timetable)
