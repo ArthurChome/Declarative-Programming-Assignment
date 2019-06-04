@@ -334,11 +334,12 @@ constrain_courses([], [], [], Constraints).
 
 
 /* Constrain the values for the courses. */
-constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Prof, Class, Day, Start)|CourseList], Constraints):-
+constrain_courses([[Prof, Class]|Rest],[Day, Start, Room|Variables], [course(Prof, Class, Room, Day, Start)|CourseList], Constraints):-
 
   /* There are 5 working days a week (monday, tuesday, etc.)*/
   Day in 1..5,
   Start in 9..14,
+  Room in 100..102,
   %teaches(Prof, Class, Constraints),
   %Start #= 11,
 
@@ -355,8 +356,8 @@ constrain_courses([[Prof, Class]|Rest],[Day, Start|Variables], [course(Prof, Cla
 compare_all(_, []).
 
 
-compare_all(course(Prof1, Class1, Day1, Start1),
-             [course(Prof2, Class2, Day2, Start2)|Courses]):-
+compare_all(course(Prof1, Class1, Room1, Day1, Start1),
+             [course(Prof2, Class2, Room2, Day2, Start2)|Courses]):-
 
                 /* Time constraints */
                 %sameDay(course(Class1, Prof1, Room1, Day1, Start1), course(Class2, Prof2, Room2, Day2, Start2), Constraints),
@@ -375,7 +376,7 @@ compare_all(course(Prof1, Class1, Day1, Start1),
                 write("compare: "),
                 %(Class1 #= Class2) #==> #\(Prof1 #= Prof2),
 
-                compare_all(course(Prof1,Class1, Day1, Start1), Courses).
+                compare_all(course(Prof1, Class1, Room1, Day1, Start1), Courses).
 
   %compare_all(course(Day1, Start1),
 %               [course(Day2, Start2)|Courses], Constraints):-%
@@ -409,8 +410,8 @@ compare_all(course(Prof1, Class1, Day1, Start1),
   link_courses([_]).
 
   /* Check the constraints for the relations between classes. */
-  link_courses([course(Prof1, Class1, Day1, Start1),
-                course(Prof2, Class2, Day2, Start2)|Courses]):-
+  link_courses([course(Prof1, Class1, Room1, Day1, Start1),
+                course(Prof2, Class2, Room2, Day2, Start2)|Courses]):-
 
       %(Prof1 #= Prof2 #/\ Day1 #= Day2) #==> (Start1 #>= Start2 + 2),
       %(Day1 #= Day2 #/\ Room1 #= Room2) #==> #\(Start1 #= Start2),
@@ -421,8 +422,8 @@ compare_all(course(Prof1, Class1, Day1, Start1),
       %#\(Start1 #= Start2),
       %link_courses(Courses),
       /* Compare the first course with all other courses. */
-      compare_all(course(Prof1, Class1, Day1, Start1), [course(Prof2, Class2, Day2, Start2)|Courses]),
-      link_courses([course(Prof2, Class2, Day2, Start2)|Courses]).
+      compare_all(course(Prof1, Class1, Room1, Day1, Start1), [course(Prof2, Class2, Room2, Day2, Start2)|Courses]),
+      link_courses([course(Prof2, Class2, Room2, Day2, Start2)|Courses]).
 
     %link_courses([course(Day1, Start1),
   %                  course(Day2, Start2)|Courses], Constraints):-
@@ -455,7 +456,7 @@ timetable(Data, Timetable):-
   %make_class_prof_list(Constraints, [], Pairs),
 
   %length(Pairs, PairsLen),
-  length(Timetable, 5),
+  length(Timetable, 6),
   %PairsLen = TimetableLen,
 
 
@@ -480,13 +481,13 @@ print_header:- nl, write("  ----------------------------------------------------
 
 /* Find a course at a certain day, hour and room. */
 findCourse([], _, _, _, []).
-findCourse([course(Class, Prof, Room, Day, Hour)|_], Day, Hour, Room, course(Class, Prof, Room, Day, Hour)).
+findCourse([course(Prof, Class, Room, Day, Hour)|_], Day, Hour, Room, course(Prof, Class, Room, Day, Hour)).
 findCourse([course(_, _, _, _, _)|Rest], OtherDay, OtherHour, OtherRoom, Z):-
 findCourse(Rest, OtherDay, OtherHour, OtherRoom, Z).
 
   /* Following predicate will print out a course */
   printCourse([]):- write("                          "). % If the course is empty, print nothing.
-  printCourse(course(Class, Prof, Room, _, _)):-
+  printCourse(course(Prof, Class, Room, _, _)):-
     write("Cl: "), real_class(Class, RealC), write(RealC), write(", "), write("Pr: "),
     real_prof(Prof, RealProf), write(RealProf), write(", "), write("Ro: "), write(Room).
 
@@ -563,6 +564,6 @@ test([
            %classes, c1, and, c4, are, on, the, same, day, fullstop
            ]).
 
-solution :- test(Data), timetable(Data, Timetable), write("timetable: "), write(Timetable)%, print_table(Timetable)
+solution :- test(Data), timetable(Data, Timetable), write("timetable: "), write(Timetable), print_table(Timetable)
 .
 test:- test(Data),sentences(Constraints, Data, []), write("constraints: "), write(Constraints).
