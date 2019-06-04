@@ -211,10 +211,10 @@ seats(102, 100).
 
  /* Following predicates process a list of constraints as to replace he and she with the professors. */
  isEqual(A, A).
- isEqual(A, [A|_]):- write("Is equal: "), write(A), nl.
- isEqual(A, [B|C]):- write("is not equal: "), write(A), write(" and "), write(B), nl, isEqual(A, C).
+ isEqual(A, [A|_]).
+ isEqual(A, [B|C]):- isEqual(A, C).
 
- processConstraints([], A, A):- nl, write("final processed constraint: "), write(A), nl.
+ processConstraints([], A, A).
  /* Watch the previous constraint if the subject is 'he' or 'she'. */
  processConstraints([A|B], [C|D], Z):- first(A, Verb), second(A, Subj1), third(A, Object), isEqual(Subj1, he),
                                     second(C, Subj2), nl, write("subj2: "), write(Subj2),
@@ -384,13 +384,13 @@ compare_all(course(Prof1, Class1, Room1, Day1, Start1),
 timetable(Data, Timetable):-
 
   sentences(Constraints, Data, []),
-  %sentences(Constraints, Data, []),
+
   /* Process the constraints (replace he and she by their real value) */
   processConstraints(Constraints, [], P),
 
-  write("constraints: "), write(Constraints), nl,
+  %write("constraints: "), write(Constraints), nl,
   make_class_prof_list(P, [], Pairs),
-  write("pairs: "), write(Pairs), nl,
+  %write("pairs: "), write(Pairs), nl,
 
   length(Pairs, PairsLen),
   length(Timetable, PairsLen), !,
@@ -467,7 +467,7 @@ findCourse(Rest, OtherDay, OtherHour, OtherRoom, Z).
 * 4. TESTS
 * What follows is a series of tests that show the implementation's effectiveness.
 *
-* There are 5 tests:
+* There are 6 tests:
 * -parser_test: this predicate takes in data and shows the DCG parser works to start with.
 *
 * -timetable_50_test: forms a timetable of 50 courses for 10 given professors teaching 5 classes each.
@@ -476,7 +476,11 @@ findCourse(Rest, OtherDay, OtherHour, OtherRoom, Z).
 * -timetable_same_day_test: since -for 50 courses- it is impossible to schedule for instance 2 classes of 10
 *  professors, this test shows that it's still managable to schedule up to 10 courses for 2 classes together in the same day.
 *
-* -timetable_fail_same_day_test:
+* -timetable_fail_same_day_test: this test shows the solver can fail if there are too much courses to cram in the same day.
+*
+* -print_solution: print out a timetable with the implemented print predicate for the 'timetable_50' dataset.
+*
+* -all_tests: try all tests in succession.
 */
 timetable_50([
            prof, jerry, teaches, class, a1, c1, c2, c3, c4, fullstop,
@@ -494,14 +498,14 @@ timetable_50([
            /* Specify the capacity of the rooms. */
            room, 100, seats, 35, students, fullstop,
            room, 101, seats, 60, students, fullstop,
-           room, 102, seats, 100, students, fullstop
+           room, 102, seats, 100, students, fullstop,
 
            /* Number of students per class. */
-           %class, c1, has, 30, students, fullstop,
-           %class, c2, has, 35, students, fullstop,
-           %class, c3, has, 100, students, fullstop,
-           %class, c4, has, 40, students, fullstop,
-           %class, a1, has, 50, students, fullstop
+           class, c1, has, 30, students, fullstop,
+           class, c2, has, 35, students, fullstop,
+           class, c3, has, 100, students, fullstop,
+           class, c4, has, 40, students, fullstop,
+           class, a1, has, 50, students, fullstop
 
            ]).
 
@@ -531,5 +535,79 @@ timetable_same_day([
           classes, c1, and, c4, are, on, the, same, day, fullstop
                       ]).
 
-solution :- timetable_50(Data), timetable(Data, Timetable), write("timetable: "), write(Timetable), print_table(Timetable).
-test:- timetable_50(Data),sentences(Constraints, Data, []), write("constraints: "), write(Constraints).
+timetable_same_day_fail([
+          prof, jerry, teaches, class, a1, c1, c2, c3, c4, fullstop,
+          prof, smith, teaches, class, a1, c1, c2, c3, c4, fullstop,
+          prof, jones, teaches, class, a1, c1, c2, c3, c4, fullstop,
+          prof, lopez, teaches, class, a1, c1, c2, c3, c4, fullstop,
+
+          prof, sevic, teaches, class, a1, c1, c2, c3, c4, fullstop,
+          prof, stark, teaches, class, a1, c1, c2, c3, c4, fullstop,
+          prof, chome, teaches, class, a1, c1, c2, c3, c4, fullstop,
+          prof, acker, teaches, class, a1, c1, c2, c3, c4, fullstop,
+          prof, frost, teaches, class, a1, c1, c2, c3, c4, fullstop,
+
+          /* Specify the capacity of the rooms. */
+          room, 100, seats, 35, students, fullstop,
+          room, 101, seats, 60, students, fullstop,
+          room, 102, seats, 100, students, fullstop,
+
+          /* Number of students per class. */
+          class, c1, has, 30, students, fullstop,
+          class, c2, has, 35, students, fullstop,
+          class, c3, has, 100, students, fullstop,
+          class, c4, has, 40, students, fullstop,
+          class, a1, has, 50, students, fullstop,
+
+          /* Specify room locations for specific classes. */
+          class, c1, is, in, room, 102, fullstop,
+
+          /* Specifications for all classes. */
+          classes, c1, and, c4, are, on, the, same, day, fullstop ]).
+
+parser([
+          prof, jerry, teaches, class, a1, c1, c2, c3, c4, fullstop,
+          prof, smith, teaches, class, a1, c1, c2, c3, c4, fullstop,
+          prof, jones, teaches, class, a1, c1, c2, c3, c4, fullstop,
+
+          /* Specify the capacity of the rooms. */
+          room, 100, seats, 35, students, fullstop,
+          room, 101, seats, 60, students, fullstop,
+          room, 102, seats, 100, students, fullstop,
+
+          /* Number of students per class. */
+          class, c1, has, 30, students, fullstop,
+          class, c2, has, 35, students, fullstop,
+          class, c3, has, 100, students, fullstop,
+
+          /* Time specifications for classes. */
+          class, c4, is, before, class, c1, fullstop,
+          class, c4, is, after, class, c3, fullstop,
+          classes, c1, and, c4, are, on, the, same, day, fullstop,
+
+          /* Specify room locations for specific classes. */
+          class, c1, is, in, room, 102, fullstop ]).
+
+
+/* Here are the final tests */
+parser_test:- parser(Data), timetable(Data, Timetable),
+              nl, write("parser_test succeeded."), nl.
+parser_test:- nl, write("parser_test timetable_fail_same_day_test."), nl.
+
+timetable_50_test:- timetable_50(Data), timetable(Data, Timetable),
+                  nl, write("timetable_50_test succesful."), nl.
+timetable_50_test:- write("timetable_50_test unsuccesful.").
+
+timetable_same_day_test:- timetable_50(Data), timetable(Data, Timetable),
+                          nl, write("timetable_50_test succesful."), nl.
+timetable_same_day_test:- write("timetable_50_test unsuccesful.")
+
+timetable_fail_same_day_test:- timetable_same_day_fail(Data), timetable(Data, Timetable),
+                              write("timetable_fail_same_day_test succesful: that wasn't supposed to happen."), nl.
+timetable_fail_same_day_test:- write("timetable_fail_same_day_test failed as expected."), nl.
+
+print_solution:- timetable_50(Data), timetable(Data, Timetable),print_table(Timetable),
+                  nl, write("print_solution test succesful."), nl.
+print_solution:- write("print_solution test unsuccesful.").
+
+all_tests:- parser_test, timetable_50_test, timetable_same_day_test, timetable_fail_same_day_test, print_solution.
