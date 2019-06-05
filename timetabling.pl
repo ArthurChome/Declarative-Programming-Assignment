@@ -212,7 +212,7 @@ seats(102, 100).
  /* Following predicates process a list of constraints as to replace he and she with the professors. */
  isEqual(A, A).
  isEqual(A, [A|_]).
- isEqual(A, [B|C]):- isEqual(A, C).
+ isEqual(A, [_|C]):- isEqual(A, C).
 
  processConstraints([], A, A).
  /* Watch the previous constraint if the subject is 'he' or 'she'. */
@@ -590,21 +590,21 @@ parser([
 
 
 /* Here are the final tests */
-parser_test:- parser(Data), timetable(Data, Timetable),
+parser_test:- parser(Data), sentences(Constraints, Data, []),
               nl, write("parser_test succeeded."), nl.
-parser_test:- nl, write("parser_test timetable_fail_same_day_test."), nl.
+parser_test:- nl, write("parser_test failed."), nl.
 
-timetable_50_test:- timetable_50(Data), timetable(Data, Timetable),
+timetable_50_test:- timetable_50(Data), timetable(Data, _),
                   nl, write("timetable_50_test succesful."), nl.
-timetable_50_test:- write("timetable_50_test unsuccesful.").
+timetable_50_test:- write("timetable_50_test unsuccesful."), nl.
 
-timetable_same_day_test:- timetable_50(Data), timetable(Data, Timetable),
+timetable_same_day_test:- timetable_50(Data), timetable(Data, _),
                           nl, write("timetable_50_test succesful."), nl.
-timetable_same_day_test:- write("timetable_50_test unsuccesful.")
+timetable_same_day_test:- write("timetable_50_test unsuccesful.").
 
 timetable_fail_same_day_test:- timetable_same_day_fail(Data), timetable(Data, Timetable),
-                              write("timetable_fail_same_day_test succesful: that wasn't supposed to happen."), nl.
-timetable_fail_same_day_test:- write("timetable_fail_same_day_test failed as expected."), nl.
+                               nl, write("timetable_fail_same_day_test succesful: that wasn't supposed to happen."), nl.
+timetable_fail_same_day_test:- nl, write("timetable_fail_same_day_test failed as expected."), nl.
 
 print_solution:- timetable_50(Data), timetable(Data, Timetable),print_table(Timetable),
                   nl, write("print_solution test succesful."), nl.
